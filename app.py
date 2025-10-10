@@ -1,95 +1,139 @@
-from anthropic import Anthropic
+import random
 from dotenv import load_dotenv
+from pydantic import BaseModel
+from langchain_anthropic import ChatAnthropic
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import PydanticOutputParser
+import re
+from flask import Flask, request, jsonify, render_template
+import pandas as pd
 import os
 
-load_dotenv()  # Load from .env
-print(os.getenv("ANTHROPIC_API_KEY"))
+load_dotenv()
 
-def classify_event_with_claude(event_data):
-    """
-    Classifies a particle event using the Claude API.
+# Ensure ANTHROPIC_API_KEY is set
+if not os.getenv("ANTHROPIC_API_KEY"):
+    raise ValueError("ANTHROPIC_API_KEY environment variable not set.")
 
-    Args:
-        event_data: A dictionary or pandas Series containing the event features
-                    ('recoil_energy', 'scintillation_yield', 'ionization_charge').
+# --- 1️⃣ Define Pydantic schema ---
+class ResearchResponse(BaseModel):
+    classification: str
+    confidence: str
+    reasoning: str
 
-    Returns:
-        A dictionary containing the classification label, confidence score, and
-        detailed reasoning, or None if an error occurs.
-    """
-    client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# --- 2️⃣ Initialize Claude + parser ---
+llm = ChatAnthropic(model="claude-3-haiku-20240307")
+parser = PydanticOutputParser(pydantic_object=ResearchResponse)
 
-    prompt = f"""
-    Analyze the following particle detector event data and classify it as one of the following types: WIMP, Axion-like particle, Sterile neutrino, or Background.
-    Provide a confidence score (0-100%) for your classification and detailed reasoning based on the provided features.
+prompt = ChatPromptTemplate.from_template(
+    """Analyze the following particle detector event data and classify it as one of:
+    WIMP, Axion-like particle, Sterile neutrino, or Background.
 
     Event Data:
-    Recoil Energy: {event_data['recoil_energy']:.4f}
-    Scintillation Yield: {event_data['scintillation_yield']:.4f}
-    Ionization Charge: {event_data['ionization_charge']:.4f}
+    Recoil Energy: {recoil_energy} keV
+    Scintillation Yield: {scintillation_yield}
+    Ionization Charge: {ionization_charge}
+    Pulse Shape: {pulse_shape}
+    Position (x,y,z): {direction_position}
 
-    Output Format:
-    Classification: [Classification Label]
-    Confidence: [Confidence Score]%
-    Reasoning: [Detailed reasoning]
+    Provide:
+    - classification label
+    - confidence (0-100%)
+    - detailed reasoning
+
+    {format_instructions}
     """
+).partial(format_instructions=parser.get_format_instructions())
+
+# --- 3️⃣ JSON extraction helper ---
+def extract_json_from_response(text: str) -> str:
+    """
+    Extract JSON object from Claude's response text.
+    """
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
+        return match.group(0)
+    return "{}"
+
+app = Flask(__name__)
+
+# --- Flask Routes ---
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/analyze_events', methods=['POST'])
+def analyze_multiple_events():
+    data = request.get_json()
+    num_events_str = data.get('num_events', '1')
 
     try:
-        message = client.messages.create(
-            model="claude-sonnet-4-5-20250929", # Or another suitable Claude model
-            max_tokens=500,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
+        num_events = int(num_events_str)
+        if num_events <= 0:
+            return jsonify({"error": "Number of events must be positive"}), 400
+        # --- REMOVED: if num_events > 10: check ---
+    except ValueError:
+        return jsonify({"error": "Invalid number of events provided"}), 400
 
-        # Assuming the response structure contains the classification information
-        # You may need to adjust this based on the actual API response format
-        response_text = message.content[0].text
-        classification = None
-        confidence = None
-        reasoning = None
+    all_event_results = []
 
-        lines = response_text.split('\n')
-        for line in lines:
-            if line.startswith("Classification:"):
-                classification = line.replace("Classification:", "").strip()
-            elif line.startswith("Confidence:"):
-                confidence_str = line.replace("Confidence:", "").strip().replace("%", "")
-                try:
-                    confidence = int(confidence_str)
-                except ValueError:
-                    confidence = None
-            elif line.startswith("Reasoning:"):
-                reasoning = line.replace("Reasoning:", "").strip()
+    for i in range(num_events):
+        recoil_energy = round(random.uniform(1, 100), 2)
+        scintillation_yield = round(random.uniform(10, 200), 2)
+        ionization_charge = round(random.uniform(50, 500), 2)
+        pulse_shape = round(random.uniform(0.1, 1.0), 2)
+        position = [
+            round(random.uniform(-5, 5), 2),
+            round(random.uniform(-5, 5), 2),
+            round(random.uniform(-5, 5), 2),
+        ]
 
-        return {
-            'classification': classification,
-            'confidence': confidence,
-            'reasoning': reasoning
+        event_data_for_prompt = {
+            "recoil_energy": recoil_energy,
+            "scintillation_yield": scintillation_yield,
+            "ionization_charge": ionization_charge,
+            "pulse_shape": pulse_shape,
+            "direction_position": position,
         }
+        formatted_prompt = prompt.format(**event_data_for_prompt)
 
-    except Exception as e:
-        print(f"Error interacting with Claude API: {e}")
-        return None
+        try:
+            raw_response = llm.invoke(formatted_prompt)
+            content = getattr(raw_response, "content", raw_response)
+            if isinstance(content, list):
+                content = content[0].get("text", "")
 
-if __name__ == "__main__":
-    # Example event data for testing
-    example_event = {
-        'recoil_energy': 5.1234,
-        'scintillation_yield': 0.5678,
-        'ionization_charge': 1.2345
-    }
-    result = classify_event_with_claude(example_event)
-    if result:
-        print(f"Event Classification: {result['classification']}")
-        print(f"Confidence: {result['confidence']}%")
-        print(f"Reasoning: {result['reasoning']}")
-# Example usage (requires setting ANTHROPIC_API_KEY environment variable)
-# You would typically iterate through your synthetic_df for this
-# example_event = synthetic_df.iloc[0]
-# classification_result = classify_event_with_claude(example_event)
-# if classification_result:
-#     print(f"Event Classification: {classification_result['classification']}")
-#     print(f"Confidence: {classification_result['confidence']}%")
-#     print(f"Reasoning: {classification_result['reasoning']}")
+            json_content = extract_json_from_response(content)
+            structured = parser.parse(json_content)
+
+            event_result = {
+                "id": i + 1,
+                "recoil_energy": recoil_energy,
+                "scintillation_yield": scintillation_yield,
+                "ionization_charge": ionization_charge,
+                "pulse_shape": pulse_shape,
+                "position": f"({position[0]}, {position[1]}, {position[2]})",
+                "classification": structured.classification,
+                "confidence": structured.confidence,
+                "reasoning": structured.reasoning
+            }
+            all_event_results.append(event_result)
+        except Exception as e:
+            print(f"Error processing event {i+1}: {e}")
+            all_event_results.append({
+                "id": i + 1,
+                "recoil_energy": recoil_energy,
+                "scintillation_yield": scintillation_yield,
+                "ionization_charge": ionization_charge,
+                "pulse_shape": pulse_shape,
+                "position": f"({position[0]}, {position[1]}, {position[2]})",
+                "classification": "Error",
+                "confidence": "0%",
+                "reasoning": f"Failed to analyze: {str(e)}"
+            })
+
+    return jsonify(all_event_results)
+
+if __name__ == '__main__':
+    app.run(debug=True)
