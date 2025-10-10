@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echoes from the Invisible Universe | Login</title>
+    <style>
+        /* ===== GLOBAL PAGE STYLING ===== */
+        body {
+            margin: 0;
+            height: 100vh;
+            font-family: 'Poppins', sans-serif;
+            background: radial-gradient(circle at bottom, #0a0a1a 0%, #000000 100%);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #00ffff;
+        }
+
+        /* ===== STAR BACKGROUND ===== */
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: twinkle 3s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* ===== LOGIN CARD ===== */
+        .login-card {
+            position: relative;
+            z-index: 2;
+            background: rgba(0, 0, 30, 0.85);
+            border: 2px solid #00ffff;
+            border-radius: 20px;
+            box-shadow: 0 0 30px #00ffff;
+            padding: 40px;
+            text-align: center;
+            width: 350px;
+            backdrop-filter: blur(5px);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #00ffff;
+            text-shadow: 0 0 20px #00ffff;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #b6faff;
+            font-size: 1rem;
+            margin-bottom: 30px;
+        }
+
+        input[type="email"] {
+            width: 85%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #00ffff;
+            background: rgba(0, 0, 0, 0.6);
+            color: #ffffff;
+            font-size: 1rem;
+            outline: none;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        input::placeholder {
+            color: #88eaff;
+        }
+
+        button {
+            background: #00ffff;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 40px;
+            font-weight: bold;
+            color: #000;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px #00ffff;
+        }
+
+        button:hover {
+            background: #00b3b3;
+            transform: scale(1.05);
+            box-shadow: 0 0 25px #00ffff;
+        }
+
+        .footer {
+            color: #88eaff;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            text-shadow: 0 0 8px #004455;
+        }
+
+        /* ===== LOGIN SUCCESS OVERLAY ===== */
+        #successOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: radial-gradient(circle at center, rgba(0,0,50,0.95) 0%, rgba(0,0,0,1) 100%);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #00ffff;
+            font-size: 1.5rem;
+            text-shadow: 0 0 20px #00ffff;
+        }
+
+        .success-animation {
+            width: 80px;
+            height: 80px;
+            border: 5px solid #00ffff;
+            border-top: 5px solid transparent;
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+    <!-- STARS BACKGROUND -->
+    <div class="stars" id="stars"></div>
+
+    <!-- LOGIN CARD -->
+    <div class="login-card">
+        <h1>🌌 Echoes from the Invisible Universe</h1>
+        <p>Enter your cosmic identity to log in</p>
+        <input type="email" id="email" placeholder="Enter your email">
+        <br>
+        <button onclick="login()">Login</button>
+        <div class="footer">A journey into the unseen cosmos</div>
+    </div>
+
+    <!-- SUCCESS OVERLAY -->
+    <div id="successOverlay">
+        <div class="success-animation"></div>
+        Logging you in to the cosmic realm...
+    </div>
+
+    <script>
+        // ===== CREATE STARS BACKGROUND =====
+        const starContainer = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 2 + 1 + 'px';
+            star.style.width = size;
+            star.style.height = size;
+            star.style.top = Math.random() * 100 + '%';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starContainer.appendChild(star);
+        }
+
+        // ===== LOGIN FUNCTION =====
+        function login() {
+            const email = document.getElementById('email').value.trim();
+            const overlay = document.getElementById('successOverlay');
+
+            if (email === "") {
+                alert("Please enter your email to continue!");
+                return;
+            }
+
+            // Show success animation
+            overlay.style.display = 'flex';
+
+            // Simulate redirect after login
+            setTimeout(() => {
+                overlay.innerHTML = "✅ Welcome, explorer! Redirecting to the cosmic dashboard...";
+            }, 2000);
+
+            setTimeout(() => {
+                window.location.href = "demo.html"; // redirect to your main page
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
