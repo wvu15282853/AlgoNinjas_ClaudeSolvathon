@@ -10,16 +10,46 @@
       margin: 0;
       padding: 0;
       font-family: 'Poppins', sans-serif;
-      background: radial-gradient(ellipse at bottom, #0d1b2a 0%, #000000 100%);
+      background: linear-gradient(-45deg, #000428, #004e92, #0d1b2a, #001219);
+      background-size: 400% 400%;
+      animation: gradientShift 20s ease infinite;
       color: white;
       overflow: hidden;
       height: 100vh;
     }
 
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* ===== FLOATING STARFIELD ===== */
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.2; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.4); }
+    }
+
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle 3s infinite ease-in-out;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    /* ===== FLOATING TITLE ===== */
+    @keyframes floatTitle {
+      0% { transform: translateY(0px); text-shadow: 0 0 15px #00ffff; }
+      50% { transform: translateY(-10px); text-shadow: 0 0 25px #0077ff; }
+      100% { transform: translateY(0px); text-shadow: 0 0 15px #00ffff; }
+    }
+
     h1 {
       font-size: 3rem;
       color: #00ffff;
-      text-shadow: 0 0 15px #00ffff, 0 0 30px #0077ff;
+      animation: floatTitle 4s ease-in-out infinite;
     }
 
     p {
@@ -28,6 +58,7 @@
       text-shadow: 0 0 5px #005f99;
     }
 
+    /* ===== GLOWING BUTTONS ===== */
     button {
       background: linear-gradient(90deg, #00ffff, #0077ff);
       color: #000;
@@ -40,6 +71,26 @@
       letter-spacing: 0.5px;
       transition: all 0.3s ease;
       box-shadow: 0 0 15px #00ffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::after {
+      content: "";
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(0,255,255,0.4) 10%, transparent 60%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      transition: transform 0.5s ease, opacity 0.8s;
+      opacity: 0;
+    }
+
+    button:hover::after {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
     }
 
     button:hover {
@@ -171,45 +222,25 @@
       flex-direction: column;
     }
 
-    /* ===== COSMIC PARTICLE ANIMATION ===== */
-    .particle {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      background: #00ffff;
-      border-radius: 50%;
-      opacity: 0.8;
-      box-shadow: 0 0 20px #00ffff, 0 0 40px #0077ff;
-      animation: orbit 3s infinite ease-in-out alternate;
-    }
-
-    @keyframes orbit {
-      0% {
-        transform: rotate(0deg) translateX(0px) translateY(0px) scale(1);
-      }
-      100% {
-        transform: rotate(360deg) translateX(var(--x)) translateY(var(--y)) scale(1.3);
-      }
-    }
-
-    .loading-text {
-      color: #00ffff;
-      font-size: 1.5rem;
-      margin-top: 220px;
-      text-shadow: 0 0 15px #00ffff;
+    .table_container {
+      margin: auto;
+      padding : 10px;
+      overflow: scroll;
+      height: 500px;
+      width: 90%;
     }
 
     #eventsTable{
-      margin: 100px auto;
+      margin: 10px auto;
       border: 2px solid #00ffff;
       scroll-behavior: smooth;
-      padding: 100px;
+      padding: 10px;
     }
   </style>
 </head>
 
 <body>
-  <!-- ===== COSMIC LOGIN PAGE ===== -->
+  <!-- ===== LOGIN PAGE ===== -->
   <div id="loginPage">
     <div id="particlesContainerLogin"></div>
     <div class="login-box">
@@ -227,7 +258,7 @@
 
     <div class="event-section">
       <label for="eventCount">NUMBER OF EVENTS</label>
-      <input type="number" id="eventCount" min="1" max="100" value="10" />
+      <input type="number" id="eventCount" value=10 />
       <button id="analyzeBtn">Analyze Events</button>
     </div>
 
@@ -241,7 +272,25 @@
   </div>
 
   <script>
-    // ===== CREATE COSMIC PARTICLES =====
+    // ===== STARFIELD CREATION =====
+    function createStars(count = 60) {
+      const body = document.body;
+      for (let i = 0; i < count; i++) {
+        const star = document.createElement("div");
+        star.className = "star";
+        const size = Math.random() * 2 + 1 + "px";
+        star.style.width = size;
+        star.style.height = size;
+        star.style.top = Math.random() * 100 + "%";
+        star.style.left = Math.random() * 100 + "%";
+        star.style.animationDuration = (2 + Math.random() * 3) + "s";
+        star.style.animationDelay = Math.random() * 5 + "s";
+        body.appendChild(star);
+      }
+    }
+    createStars(80);
+
+    // ===== COSMIC PARTICLES =====
     function createParticles(containerId, count = 30) {
       const container = document.getElementById(containerId);
       for (let i = 0; i < count; i++) {
@@ -256,7 +305,6 @@
       }
     }
 
-    // Initially create only login particles
     createParticles('particlesContainerLogin', 35);
 
     // ===== LOGIN FUNCTION =====
@@ -270,25 +318,19 @@
       }
 
       const loginPage = document.getElementById('loginPage');
-
-      // Fade out login and remove particles
       loginPage.style.opacity = '0';
       loginPage.style.transform = 'scale(1.05)';
 
       setTimeout(() => {
         loginPage.style.display = 'none';
-
-        // Create main background particles only after login
         createParticles('particlesContainer', 30);
         document.getElementById('mainContent').classList.add('visible');
       }, 1000);
     });
 
-    // ===== ANALYZE BUTTON FUNCTION =====
-    const count = document.getElementById('eventCount').value.trim();
-      
+    // ===== ANALYZE EVENTS =====
     document.getElementById('analyzeBtn').addEventListener('click', async () => {
-
+      const count = document.getElementById('eventCount').value.trim();
       const overlay = document.getElementById('loadingOverlay');
       const answerBox = document.getElementById('answer');
 
@@ -299,52 +341,38 @@
 
       overlay.style.display = 'flex';
       answerBox.innerText = '';
-
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
-      
       answerBox.innerHTML = `
-      🪐 Analysis Complete!
-      <br>
-      <br>
-      Processed 
-      <strong>${count}</strong>
-       dark matter events.
-       <br>
-       <br>
-
-      <table id="eventsTable">
-        <thead>
-            <tr>
-                <th>Event ID</th>
-                <th>Recoil Energy (keV)</th>
-                <th>Scintillation Yield</th>
-                <th>Ionization Charge</th>
-                <th>Pulse Shape</th>
-                <th>Position (x,y,z)</th>
-                <th>Classification</th>
-                <th>Confidence</th>
-                <th>Reasoning</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Event rows will be inserted here by JavaScript -->
-        </tbody>
-    </table>
-    
-    
-    <!--<label for="numEvents">Number of Events:</label>-->`;
+      🪐 Analysis Complete!<br>
+      Processed <strong>${count}</strong> dark matter events.<br>
+      <button id="HomeButton" onclick="location.reload()">Back to HOME</button>
+      <div class="table_container">
+        <table id="eventsTable" border="1px solid">
+          <thead>
+              <tr>
+                  <th>Event ID</th>
+                  <th>Recoil Energy (keV)</th>
+                  <th>Scintillation Yield</th>
+                  <th>Ionization Charge</th>
+                  <th>Pulse Shape</th>
+                  <th>Position (x,y,z)</th>
+                  <th>Classification</th>
+                  <th>Confidence</th>
+                  <th>Reasoning</th>
+              </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>`;
 
       const numEvents = parseInt(count);
-
       if (isNaN(numEvents) || numEvents <= 0) {
         alert("Please enter a valid positive number for events.");
         return;
       }
-      
+
       const tableBody = document.getElementById("eventsTable").getElementsByTagName("tbody")[0];
-      
-      //tableBody.innerHTML = '';
 
       try {
         const response = await fetch("/analyze_events", {
@@ -354,25 +382,24 @@
         });
 
         const data = await response.json();
-
         if (response.status !== 200) {
           alert("Error: " + data.error + (data.details ? "\nDetails: " + data.details : ""));
           return;
         }
+
         overlay.style.display = 'none';
         data.forEach(event => {
-            const row = tableBody.insertRow();
-            row.insertCell().innerText = event.id;
-            row.insertCell().innerText = event.recoil_energy;
-            row.insertCell().innerText = event.scintillation_yield;
-            row.insertCell().innerText = event.ionization_charge;
-            row.insertCell().innerText = event.pulse_shape;
-            row.insertCell().innerText = event.position;
-            row.insertCell().innerText = event.classification;
-            row.insertCell().innerText = event.confidence;
-            row.insertCell().innerText = event.reasoning;
+          const row = tableBody.insertRow();
+          row.insertCell().innerText = event.id;
+          row.insertCell().innerText = event.recoil_energy;
+          row.insertCell().innerText = event.scintillation_yield;
+          row.insertCell().innerText = event.ionization_charge;
+          row.insertCell().innerText = event.pulse_shape;
+          row.insertCell().innerText = event.position;
+          row.insertCell().innerText = event.classification;
+          row.insertCell().innerText = event.confidence;
+          row.insertCell().innerText = event.reasoning;
         });
-
       } catch (error) {
         alert("An error occurred during analysis: " + error.message);
       }
